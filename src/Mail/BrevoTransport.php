@@ -9,9 +9,7 @@ use Bhekor\LaravelBrevo\Contracts\BrevoClientInterface;
 use Bhekor\LaravelBrevo\Exceptions\BrevoApiException;
 
 /**
- * Brevo mail transport for Laravel.
- * 
- * @package Bhekor\LaravelBrevo\Mail
+ * Brevo Mail Transport Implementation
  */
 class BrevoTransport extends AbstractTransport
 {
@@ -19,15 +17,14 @@ class BrevoTransport extends AbstractTransport
     private array $config;
 
     /**
-     * Create new Brevo transport instance.
-     * 
+     * Create a new Brevo transport instance
+     *
      * @param BrevoClientInterface $client
      * @param array $config
      */
     public function __construct(BrevoClientInterface $client, array $config)
     {
         parent::__construct();
-
         $this->client = $client;
         $this->config = $config;
     }
@@ -42,9 +39,8 @@ class BrevoTransport extends AbstractTransport
 
         try {
             $response = $this->client->sendEmail($payload);
-            
             $message->getOriginalMessage()->getHeaders()->addTextHeader(
-                'X-Brevo-Message-ID', 
+                'X-Brevo-Message-ID',
                 $response['messageId']
             );
         } catch (BrevoApiException $e) {
@@ -57,43 +53,60 @@ class BrevoTransport extends AbstractTransport
     }
 
     /**
-     * Build API payload from Email object.
-     * 
+     * Build API payload from Email object
+     *
      * @param \Symfony\Component\Mime\Email $email
      * @return array
      */
     private function buildPayload(\Symfony\Component\Mime\Email $email): array
     {
         $payload = [
-            'sender' => $this->mapAddress($email->getFrom()[0]),
-            'to' => array_map([$this, 'mapAddress'], $email->getTo()),
+            'sender' => $this->getSender($email),
+            'to' => $this->mapRecipients($email->getTo()),
             'subject' => $email->getSubject(),
             'htmlContent' => $email->getHtmlBody(),
             'textContent' => $email->getTextBody(),
         ];
 
-        if (!empty($email->getCc())) {
-            $payload['cc'] = array_map([$this, 'mapAddress'], $email->getCc());
-        }
-
-        if (!empty($email->getBcc())) {
-            $payload['bcc'] = array_map([$this, 'mapAddress'], $email->getBcc());
-        }
-
-        if (!empty($email->getReplyTo())) {
-            $payload['replyTo'] = $this->mapAddress($email->getReplyTo()[0]);
-        }
-
-        if (!empty($email->getAttachments())) {
-            $payload['attachment'] = $this->processAttachments($email->getAttachments());
-        }
+        $this->addCcRecipients($email, $payload);
+        $this->addBccRecipients($email, $payload);
+        $this->addReplyTo($email, $payload);
+        $this->addAttachments($email, $payload);
 
         return $payload;
     }
 
     /**
-     * Map Symfony Address to Brevo format.
-     * 
+     * Get sender information with fallback to config
+     *
+     * @param \Symfony\Component\Mime\Email $email
+     * @return array
+     */
+    private function getSender(\Symfony\Component\Mime\Email $email): array
+    {
+        $from = $email->getFrom();
+        $defaultFrom = $this->config['default_from'] ?? [
+            'email' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
+            'name' => env('MAIL_FROM_NAME', 'Example'),
+        ];
+
+        return $from ? $this->mapAddress($from[0]) : $defaultFrom;
+    }
+
+    /**
+     * Map recipients to Brevo format
+     *
+     * @param array $recipients
+     * @return array
+     */
+    private function mapRecipients(array $recipients): array
+    {
+        return array_map([$this, 'mapAddress'], $recipients);
+    }
+
+    /**
+     * Map single address to Brevo format with required name field
+     *
      * @param \Symfony\Component\Mime\Address $address
      * @return array
      */
@@ -101,28 +114,65 @@ class BrevoTransport extends AbstractTransport
     {
         return [
             'email' => $address->getAddress(),
-            'name' => $address->getName(),
+            'name' => $address->getName() ?: $address->getAddress(), // Fallback to email if name not provided
         ];
     }
 
     /**
-     * Process email attachments.
-     * 
-     * @param array $attachments
-     * @return array
+     * Add CC recipients to payload if present
+     *
+     * @param \Symfony\Component\Mime\Email $email
+     * @param array &$payload
      */
-    private function processAttachments(array $attachments): array
+    private function addCcRecipients(\Symfony\Component\Mime\Email $email, array &$payload): void
     {
-        $processed = [];
-        
-        foreach ($attachments as $attachment) {
-            $processed[] = [
-                'name' => $attachment->getFilename(),
-                'content' => base64_encode($attachment->getBody()),
-            ];
+        if (!empty($email->getCc())) {
+            $payload['cc'] = $this->mapRecipients($email->getCc());
         }
+    }
 
-        return $processed;
+    /**
+     * Add BCC recipients to payload if present
+     *
+     * @param \Symfony\Component\Mime\Email $email
+     * @param array &$payload
+     */
+    private function addBccRecipients(\Symfony\Component\Mime\Email $email, array &$payload): void
+    {
+        if (!empty($email->getBcc())) {
+            $payload['bcc'] = $this->mapRecipients($email->getBcc());
+        }
+    }
+
+    /**
+     * Add reply-to address if present
+     *
+     * @param \Symfony\Component\Mime\Email $email
+     * @param array &$payload
+     */
+    private function addReplyTo(\Symfony\Component\Mime\Email $email, array &$payload): void
+    {
+        if (!empty($email->getReplyTo())) {
+            $payload['replyTo'] = $this->mapAddress($email->getReplyTo()[0]);
+        }
+    }
+
+    /**
+     * Add attachments if present
+     *
+     * @param \Symfony\Component\Mime\Email $email
+     * @param array &$payload
+     */
+    private function addAttachments(\Symfony\Component\Mime\Email $email, array &$payload): void
+    {
+        if (!empty($email->getAttachments())) {
+            $payload['attachment'] = array_map(function ($attachment) {
+                return [
+                    'name' => $attachment->getFilename(),
+                    'content' => base64_encode($attachment->getBody()),
+                ];
+            }, iterator_to_array($email->getAttachments()));
+        }
     }
 
     /**

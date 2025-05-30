@@ -3,37 +3,37 @@
 namespace Bhekor\LaravelBrevo\Contracts;
 
 /**
- * Interface for Brevo API client.
+ * Brevo Client Interface
  * 
- * @package Bhekor\LaravelBrevo\Contracts
+ * Defines the contract for the Brevo API client.
  */
 interface BrevoClientInterface
 {
     /**
-     * Send transactional email through Brevo API.
-     * 
-     * @param array $payload Email data
-     * @return array API response
+     * Send transactional email
+     *
+     * @param array $payload
+     * @return array
      * @throws \Bhekor\LaravelBrevo\Exceptions\BrevoApiException
      */
     public function sendEmail(array $payload): array;
 
     /**
-     * Get email event reports.
-     * 
-     * @param array $query Query parameters
-     * @return array API response
+     * Get email event reports
+     *
+     * @param array $query
+     * @return array
      * @throws \Bhekor\LaravelBrevo\Exceptions\BrevoApiException
      */
     public function getEmailEventReport(array $query = []): array;
 
     /**
-     * Make API request to Brevo.
-     * 
-     * @param string $method HTTP method
-     * @param string $uri API endpoint
-     * @param array $data Request data
-     * @return array API response
+     * Make API request
+     *
+     * @param string $method
+     * @param string $uri
+     * @param array $data
+     * @return array
      * @throws \Bhekor\LaravelBrevo\Exceptions\BrevoApiException
      */
     public function request(string $method, string $uri, array $data = []): array;

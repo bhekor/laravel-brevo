@@ -9,34 +9,80 @@ use Bhekor\LaravelBrevo\Contracts\BrevoClientInterface;
 use Bhekor\LaravelBrevo\Exceptions\BrevoApiException;
 
 /**
- * Brevo API client implementation.
+ * Brevo API Client Implementation
  * 
- * @package Bhekor\LaravelBrevo\Services
+ * Handles all communication with the Brevo API including:
+ * - Sending transactional emails
+ * - Retrieving email event reports
+ * - Managing API requests and responses
  */
 class BrevoClient implements BrevoClientInterface
 {
+    /**
+     * Guzzle HTTP client instance
+     * @var Client
+     */
     private Client $client;
+
+    /**
+     * Brevo API key
+     * @var string
+     */
     private string $apiKey;
 
     /**
-     * Create a new Brevo client instance.
-     * 
-     * @param string $apiKey Brevo API key
-     * @param array $options Guzzle client options
+     * Base URI for API requests
+     * @var string
      */
-    public function __construct(string $apiKey, array $options = [])
-    {
-        $this->apiKey = $apiKey;
+    private string $baseUri;
 
-        $this->client = new Client(array_merge([
-            'base_uri' => 'https://api.brevo.com/v3/',
+    /**
+     * Request timeout in seconds
+     * @var int
+     */
+    private int $timeout;
+
+    /**
+     * Create a new Brevo API client instance
+     *
+     * @param string $apiKey Brevo API key
+     * @param string $host Base API host (must include /v3)
+     * @param int $timeout Request timeout in seconds
+     * @throws \InvalidArgumentException If invalid host is provided
+     */
+    public function __construct(
+        string $apiKey, 
+        string $host = 'https://api.brevo.com/v3',
+        int $timeout = 15
+    ) {
+        if (!str_ends_with($host, '/v3')) {
+            throw new \InvalidArgumentException(
+                'Brevo API host must end with /v3. Provided: ' . $host
+            );
+        }
+
+        $this->apiKey = $apiKey;
+        $this->baseUri = rtrim($host, '/') . '/';
+        $this->timeout = $timeout;
+
+        $this->initializeClient();
+    }
+
+    /**
+     * Initialize the HTTP client with proper configuration
+     */
+    private function initializeClient(): void
+    {
+        $this->client = new Client([
+            'base_uri' => $this->baseUri,
             'headers' => [
                 'accept' => 'application/json',
                 'api-key' => $this->apiKey,
                 'content-type' => 'application/json',
             ],
-            'timeout' => $options['timeout'] ?? 15,
-        ], $options));
+            'timeout' => $this->timeout,
+            'http_errors' => false, // We handle errors manually
+        ]);
     }
 
     /**
@@ -61,20 +107,13 @@ class BrevoClient implements BrevoClientInterface
     public function request(string $method, string $uri, array $data = []): array
     {
         try {
-            $options = [];
-
-            if ($method === 'GET') {
-                $options['query'] = $data;
-            } else {
-                $options['json'] = $data;
-            }
-
-            $response = $this->client->request($method, $uri, $options);
-
-            return $this->handleResponse($response);
+            $options = $this->prepareRequestOptions($method, $data);
+            $response = $this->client->request($method, ltrim($uri, '/'), $options);
+            
+            return $this->processResponse($response);
         } catch (GuzzleException $e) {
             throw new BrevoApiException(
-                $e->getMessage(),
+                'HTTP Request Failed: ' . $e->getMessage(),
                 $e->getCode(),
                 $e
             );
@@ -82,28 +121,58 @@ class BrevoClient implements BrevoClientInterface
     }
 
     /**
-     * Handle API response.
-     * 
+     * Prepare request options based on HTTP method
+     *
+     * @param string $method HTTP method
+     * @param array $data Request data
+     * @return array Prepared options
+     */
+    private function prepareRequestOptions(string $method, array $data): array
+    {
+        return $method === 'GET' 
+            ? ['query' => $data] 
+            : ['json' => $data];
+    }
+
+    /**
+     * Process API response
+     *
      * @param ResponseInterface $response
-     * @return array
+     * @return array Decoded response data
      * @throws BrevoApiException
      */
-    private function handleResponse(ResponseInterface $response): array
+    private function processResponse(ResponseInterface $response): array
     {
         $contents = $response->getBody()->getContents();
         $data = json_decode($contents, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new BrevoApiException('Invalid JSON response: '.$contents);
-        }
-
-        if ($response->getStatusCode() >= 400) {
             throw new BrevoApiException(
-                $data['message'] ?? 'Brevo API error',
+                'Invalid JSON response: ' . $contents,
                 $response->getStatusCode()
             );
         }
 
+        if ($response->getStatusCode() >= 400) {
+            $this->handleErrorResponse($response, $data);
+        }
+
         return $data;
+    }
+
+    /**
+     * Handle error responses from API
+     *
+     * @param ResponseInterface $response
+     * @param array $data
+     * @throws BrevoApiException
+     */
+    private function handleErrorResponse(ResponseInterface $response, array $data): void
+    {
+        $message = $data['message'] ?? $data['error'] ?? 'Brevo API error';
+        $code = $response->getStatusCode();
+        $errorCode = $data['code'] ?? null;
+
+        throw new BrevoApiException($message, $code, null, $errorCode);
     }
 }

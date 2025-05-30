@@ -2,19 +2,21 @@
 
 namespace Bhekor\LaravelBrevo\Contracts;
 
+use Symfony\Component\Mime\Email;
+
 /**
- * Interface for mail transport implementations.
+ * Mail Transport Interface
  * 
- * @package Bhekor\LaravelBrevo\Contracts
+ * Defines the contract for mail transport implementations.
  */
 interface MailTransportInterface
 {
     /**
-     * Send an email through the transport.
-     * 
-     * @param \Symfony\Component\Mime\Email $email
-     * @return array API response
+     * Send email
+     *
+     * @param Email $email
+     * @return array
      * @throws \Bhekor\LaravelBrevo\Exceptions\BrevoApiException
      */
-    public function send(\Symfony\Component\Mime\Email $email): array;
+    public function send(Email $email): array;
 }
