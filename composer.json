@@ -1,12 +1,15 @@
 {
     "name": "bhekor/laravel-brevo",
     "description": "Laravel package for Brevo (ex-Sendinblue) API integration",
+    "keywords": ["laravel", "brevo", "sendinblue", "email", "api"],
     "type": "library",
     "license": "MIT",
     "authors": [
         {
             "name": "Your Name",
-            "email": "your@email.com"
+            "email": "your@email.com",
+            "homepage": "https://yourwebsite.com",
+            "role": "Developer"
         }
     ],
     "require": {
@@ -41,6 +44,10 @@
             }
         }
     },
-    "minimum-stability": "dev",
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "minimum-stability": "stable",
     "prefer-stable": true
 }
