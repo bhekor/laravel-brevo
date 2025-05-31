@@ -2,6 +2,14 @@
 
 Complete Brevo (formerly Sendinblue) integration for Laravel, including email support, webhook handling, and optional Vue components.
 
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/bhekor/laravel-brevo.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-brevo)
+[![Total Downloads](https://img.shields.io/packagist/dt/bhekor/laravel-brevo.svg?style=flat-square)](https://packagist.org/packages/bhekor/laravel-brevo)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/bhekor/laravel-brevo/tests.yml?label=tests)](https://github.com/bhekor/laravel-brevo/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-brightgreen.svg?style=flat-square)](https://phpstan.org)
+[![License](https://img.shields.io/packagist/l/bhekor/laravel-brevo.svg?style=flat-square)](https://github.com/bhekor/laravel-brevo/blob/main/LICENSE)
+[![PHP Version Support](https://img.shields.io/packagist/php-v/bhekor/laravel-brevo.svg?style=flat-square)](https://php.net)
+[![Laravel Version Support](https://img.shields.io/badge/Laravel-9.x%20%7C%2010.x-FF2D20.svg?style=flat-square&logo=laravel)](https://laravel.com)
+
 ---
 
 ## Features
