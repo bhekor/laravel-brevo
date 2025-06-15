@@ -162,3 +162,13 @@ Brevo::campaigns()->create(...);
 ---
 
 This summary provides complete context for the package's current state and clear pathways for expansion. The architecture is deliberately designed to accommodate new Brevo API services while maintaining consistency with the existing implementation.
+
+<!-- # Commit all changes
+git add .
+git commit -m "Add Laravel 11 and 12 support"
+
+# Create tag (semantic versioning)
+git tag -a v1.0.1 -m "Support Laravel 9-12"
+
+# Push changes and tags
+git push origin main --tags -->
